@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deep Sensor Anomaly Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-abyss: #050b14;
+    --bg-panel: #0b1826;
+    --bg-panel-raised: #101f30;
+    --line: rgba(47, 216, 196, 0.14);
+    --teal: #2fd8c4;
+    --teal-dim: rgba(47, 216, 196, 0.35);
+    --teal-glow: rgba(47, 216, 196, 0.08);
+    --coral: #ff6b4a;
+    --coral-dim: rgba(255, 107, 74, 0.18);
+    --text-primary: #e7eef3;
+    --text-secondary: #6e8494;
+    --text-tertiary: #445566;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: radial-gradient(ellipse at top, #0a1826 0%, var(--bg-abyss) 60%);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    padding: 28px;
+  }
+
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--teal);
+    text-transform: uppercase;
+  }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+    gap: 12px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 18px;
+  }
+
+  h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    margin: 4px 0 0 0;
+  }
+
+  .status-row {
+    display: flex;
+    gap: 22px;
+    align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .pill {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 12px;
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+  }
+
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--text-tertiary);
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+  .dot.live {
+    background: var(--teal);
+    box-shadow: 0 0 8px var(--teal);
+    animation: pulse 1.6s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 18px;
+  }
+
+  @media (max-width: 900px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px;
+  }
+
+  .panel-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin: 0 0 14px 0;
+  }
+
+  canvas#wave {
+    width: 100%;
+    height: 340px;
+    display: block;
+    border-radius: 6px;
+    background: linear-gradient(180deg, #071220 0%, #050c16 100%);
+  }
+
+  .tabs {
+    display: flex;
+    gap: 6px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+
+  .tab {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    padding: 7px 13px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    transition: all 0.15s;
+  }
+  .tab:hover { border-color: var(--teal-dim); color: var(--text-primary); }
+  .tab.active {
+    background: var(--teal-glow);
+    border-color: var(--teal);
+    color: var(--teal);
+  }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  button.action {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 10px 16px;
+    border-radius: 7px;
+    border: 1px solid var(--teal-dim);
+    background: var(--teal-glow);
+    color: var(--teal);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  button.action:hover { background: var(--teal-dim); }
+  button.action.secondary {
+    border-color: var(--line);
+    background: transparent;
+    color: var(--text-secondary);
+  }
+  button.action.secondary:hover { color: var(--text-primary); border-color: var(--text-tertiary); }
+
+  .gauge-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 0 18px 0;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 14px;
+  }
+
+  .gauge-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 34px;
+    font-weight: 600;
+    margin-top: -74px;
+  }
+  .gauge-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--text-secondary);
+    margin-top: 6px;
+    text-transform: uppercase;
+  }
+
+  .log {
+    max-height: 360px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .log::-webkit-scrollbar { width: 5px; }
+  .log::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+
+  .log-item {
+    background: var(--bg-panel-raised);
+    border-left: 2px solid var(--text-tertiary);
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    animation: slidein 0.25s ease-out;
+  }
+  .log-item.flagged { border-left-color: var(--coral); background: linear-gradient(90deg, var(--coral-dim), var(--bg-panel-raised) 40%); }
+  @keyframes slidein {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .log-row1 { display: flex; justify-content: space-between; color: var(--text-secondary); }
+  .log-row1 .conf { color: var(--text-primary); font-weight: 600; }
+  .log-item.flagged .conf { color: var(--coral); }
+  .log-empty { color: var(--text-tertiary); font-size: 12px; padding: 20px 0; text-align: center; }
+
+  .footnote {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: var(--text-tertiary);
+    margin-top: 18px;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="eyebrow">Multi-channel signal integrity</div>
+    <h1>Deep Sensor Anomaly Engine</h1>
+  </div>
+  <div class="status-row">
+    <div class="pill"><span class="dot" id="statusDot"></span><span id="statusText">idle</span></div>
+    <div class="pill">4 channels monitored</div>
+    <div class="pill">baseline: rolling z-score + isolation forest</div>
+  </div>
+</header>
+
+<div class="grid">
+  <div class="panel">
+    <div class="panel-title">Live signal — <span id="activeChannelLabel">acoustic</span></div>
+    <canvas id="wave" width="1000" height="340"></canvas>
+
+    <div class="tabs" id="channelTabs">
+      <button class="tab active" data-channel="acoustic">acoustic · dB</button>
+      <button class="tab" data-channel="temperature">temperature · °C</button>
+      <button class="tab" data-channel="pressure">pressure · bar</button>
+      <button class="tab" data-channel="vibration">vibration · g</button>
+    </div>
+
+    <div class="controls">
+      <button class="action" id="startBtn">Start live stream</button>
+      <button class="action secondary" id="stopBtn">Stop</button>
+      <button class="action secondary" id="simBtn">Run batch simulation</button>
+    </div>
+
+    <div class="footnote">
+      API_BASE is set at the top of the script tag below — point it at your deployed
+      backend URL after hosting (Railway/Render/Fly). Currently: <span id="apiBaseLabel"></span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Confidence</div>
+    <div class="gauge-wrap">
+      <canvas id="gauge" width="160" height="90"></canvas>
+      <div class="gauge-value" id="gaugeValue">0.00</div>
+      <div class="gauge-label" id="gaugeLabel">no signal</div>
+    </div>
+
+    <div class="panel-title">Event log</div>
+    <div class="log" id="log">
+      <div class="log-empty">Start the live stream to see scored events appear here.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- Configuration -------------------------------------------------------
+// Point these at your deployed backend once hosted (e.g. Railway URL).
+const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? 'http://localhost:8420'
+  : 'https://YOUR-RAILWAY-APP.up.railway.app';
+const WS_BASE = API_BASE.replace(/^http/, 'ws');
+document.getElementById('apiBaseLabel').textContent = API_BASE;
+
+// ---- State -----------------------------------------------------------------
+const CHANNELS = ['acoustic', 'temperature', 'pressure', 'vibration'];
+let activeChannel = 'acoustic';
+let history = {}; // channel -> array of {t, value, confidence, flagged}
+CHANNELS.forEach(c => history[c] = []);
+let ws = null;
+let sweepX = 0;
+
+// ---- DOM refs ----------------------------------------------------------
+const canvas = document.getElementById('wave');
+const ctx = canvas.getContext('2d');
+const gaugeCanvas = document.getElementById('gauge');
+const gctx = gaugeCanvas.getContext('2d');
+const statusDot = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
+const logEl = document.getElementById('log');
+const gaugeValueEl = document.getElementById('gaugeValue');
+const gaugeLabelEl = document.getElementById('gaugeLabel');
+
+function resizeCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * devicePixelRatio;
+  canvas.height = rect.height * devicePixelRatio;
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// ---- Tabs ----------------------------------------------------------------
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    activeChannel = tab.dataset.channel;
+    document.getElementById('activeChannelLabel').textContent = activeChannel;
+    drawWave();
+  });
+});
+
+// ---- Waveform drawing (signature element: sonar-sweep scrolling readout) --
+function drawWave() {
+  const w = canvas.getBoundingClientRect().width;
+  const h = canvas.getBoundingClientRect().height;
+  ctx.clearRect(0, 0, w, h);
+
+  // depth gridlines
+  ctx.strokeStyle = 'rgba(47,216,196,0.06)';
+  ctx.lineWidth = 1;
+  for (let i = 1; i < 5; i++) {
+    const y = (h / 5) * i;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+  }
+
+  const data = history[activeChannel].slice(-120);
+  if (data.length < 2) {
+    ctx.fillStyle = '#445566';
+    ctx.font = '12px JetBrains Mono';
+    ctx.fillText('awaiting signal...', 16, h / 2);
+    return;
+  }
+
+  const values = data.map(d => d.value);
+  const min = Math.min(...values), max = Math.max(...values);
+  const pad = (max - min) * 0.2 || 1;
+  const yFor = v => h - ((v - (min - pad)) / ((max + pad) - (min - pad))) * h;
+  const xStep = w / (120 - 1);
+
+  // line
+  ctx.beginPath();
+  ctx.strokeStyle = '#2fd8c4';
+  ctx.lineWidth = 1.6;
+  ctx.shadowColor = 'rgba(47,216,196,0.5)';
+  ctx.shadowBlur = 6;
+  data.forEach((d, i) => {
+    const x = i * xStep;
+    const y = yFor(d.value);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // anomaly markers
+  data.forEach((d, i) => {
+    if (!d.flagged) return;
+    const x = i * xStep;
+    const y = yFor(d.value);
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#ff6b4a';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x, y, 9, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,107,74,0.45)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  });
+
+  // sonar sweep line at the leading edge
+  const sweepXPos = (data.length - 1) * xStep;
+  ctx.beginPath();
+  ctx.moveTo(sweepXPos, 0);
+  ctx.lineTo(sweepXPos, h);
+  ctx.strokeStyle = 'rgba(231,238,243,0.5)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+// ---- Gauge -----------------------------------------------------------------
+function drawGauge(confidence) {
+  const w = gaugeCanvas.width, h = gaugeCanvas.height;
+  gctx.clearRect(0, 0, w, h);
+  const cx = w / 2, cy = h - 6, r = 62;
+  const startAngle = Math.PI, endAngle = 0;
+
+  gctx.beginPath();
+  gctx.arc(cx, cy, r, startAngle, endAngle, false);
+  gctx.strokeStyle = 'rgba(47,216,196,0.14)';
+  gctx.lineWidth = 10;
+  gctx.stroke();
+
+  const angle = startAngle + (endAngle - startAngle) * confidence;
+  gctx.beginPath();
+  gctx.arc(cx, cy, r, startAngle, angle, false);
+  gctx.strokeStyle = confidence > 0.55 ? '#ff6b4a' : '#2fd8c4';
+  gctx.lineWidth = 10;
+  gctx.lineCap = 'round';
+  gctx.stroke();
+
+  gaugeValueEl.textContent = confidence.toFixed(2);
+  gaugeValueEl.style.color = confidence > 0.55 ? '#ff6b4a' : '#e7eef3';
+  gaugeLabelEl.textContent = confidence > 0.55 ? 'anomaly flagged' : 'nominal';
+}
+drawGauge(0);
+
+// ---- Event log --------------------------------------------------------
+function addLogEntry(point) {
+  if (logEl.querySelector('.log-empty')) logEl.innerHTML = '';
+  const div = document.createElement('div');
+  div.className = 'log-item' + (point.flagged ? ' flagged' : '');
+  const time = new Date().toLocaleTimeString();
+  div.innerHTML = `
+    <div class="log-row1"><span>t=${point.t} · ${time}</span><span class="conf">${point.confidence.toFixed(2)}</span></div>
+    <div>${point.flagged ? '⚠ anomaly · ' + activeChannel : 'nominal · ' + activeChannel}</div>
+  `;
+  logEl.prepend(div);
+  while (logEl.children.length > 40) logEl.removeChild(logEl.lastChild);
+}
+
+// ---- Live stream via WebSocket ---------------------------------------------
+function startStream() {
+  if (ws) return;
+  statusDot.classList.add('live');
+  statusText.textContent = 'live';
+  const channelsParam = CHANNELS.join(',');
+  ws = new WebSocket(`${WS_BASE}/stream?channels=${channelsParam}&anomaly_rate=0.08`);
+
+  ws.onmessage = (event) => {
+    const point = JSON.parse(event.data);
+    CHANNELS.forEach(c => {
+      history[c].push({ t: point.t, value: point[c], confidence: point.confidence, flagged: point.flagged });
+      if (history[c].length > 300) history[c].shift();
+    });
+    drawWave();
+    drawGauge(point.confidence);
+    addLogEntry(point);
+  };
+
+  ws.onclose = () => {
+    statusDot.classList.remove('live');
+    statusText.textContent = 'disconnected';
+    ws = null;
+  };
+
+  ws.onerror = () => {
+    statusText.textContent = 'connection error — check API_BASE';
+  };
+}
+
+function stopStream() {
+  if (ws) { ws.close(); ws = null; }
+  statusDot.classList.remove('live');
+  statusText.textContent = 'idle';
+}
+
+async function runBatchSimulation() {
+  statusText.textContent = 'running batch simulation...';
+  try {
+    const res = await fetch(`${API_BASE}/simulate?n=150&anomaly_rate=0.07`, { method: 'POST' });
+    const data = await res.json();
+    CHANNELS.forEach(c => history[c] = []);
+    data.readings.forEach(point => {
+      CHANNELS.forEach(c => {
+        history[c].push({ t: point.t, value: point[c], confidence: point.confidence, flagged: point.flagged });
+      });
+    });
+    drawWave();
+    const last = data.readings[data.readings.length - 1];
+    drawGauge(last.confidence);
+    logEl.innerHTML = '';
+    data.readings.slice(-40).reverse().forEach(p => addLogEntry(p));
+    statusText.textContent = `batch complete — ${data.flagged_count}/${data.total_points} flagged`;
+  } catch (e) {
+    statusText.textContent = 'batch failed — check API_BASE / backend is running';
+  }
+}
+
+document.getElementById('startBtn').addEventListener('click', startStream);
+document.getElementById('stopBtn').addEventListener('click', stopStream);
+document.getElementById('simBtn').addEventListener('click', runBatchSimulation);
+
+drawWave();
+</script>
+</body>
+</html>
