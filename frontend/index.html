@@ -301,7 +301,7 @@
 // Point these at your deployed backend once hosted (e.g. Railway URL).
 const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
   ? 'http://localhost:8420'
-  : 'https://YOUR-RAILWAY-APP.up.railway.app';
+  : 'https://deep-sensor-anomaly-engine-production.up.railway.app';
 const WS_BASE = API_BASE.replace(/^http/, 'ws');
 document.getElementById('apiBaseLabel').textContent = API_BASE;
 
